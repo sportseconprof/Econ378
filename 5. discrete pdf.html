@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Calculator — Econ 378</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    max-width: 860px;
+    margin: 36px auto;
+    padding: 0 24px 48px;
+    background: #f5f6fa;
+    color: #1e1e2e;
+  }
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 22px; }
+
+  .panel {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.08);
+    padding: 20px 22px;
+    margin-bottom: 18px;
+  }
+  .panel-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+
+  /* ── Setup ── */
+  .setup-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .setup-row label { font-size: 0.95rem; color: #374151; }
+
+  input[type="number"].spinner {
+    width: 72px;
+    padding: 7px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 0.95rem;
+    text-align: center;
+    outline: none;
+  }
+  input[type="number"].spinner:focus { border-color: #2563eb; }
+
+  .btn {
+    padding: 8px 22px;
+    border: none;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    outline: none;
+  }
+  .btn-blue  { background: #2563eb; color: white; }
+  .btn-blue:hover  { background: #1d4ed8; }
+  .btn-green { background: #16a34a; color: white; }
+  .btn-green:hover { background: #15803d; }
+  .btn:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+
+  /* ── Input table ── */
+  .input-tbl { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  .input-tbl th {
+    background: #f9fafb;
+    padding: 9px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .input-tbl td { padding: 7px 12px; text-align: center; }
+  .input-tbl input {
+    width: 110px;
+    padding: 6px 10px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    text-align: center;
+    outline: none;
+    font-family: 'Courier New', monospace;
+  }
+  .input-tbl input:focus { border-color: #2563eb; }
+  .input-tbl input.invalid { border-color: #ef4444; background: #fff5f5; }
+
+  .sum-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 0.9rem; color: #555; }
+  .sum-badge {
+    font-weight: 700;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-family: 'Courier New', monospace;
+  }
+  .sum-ok  { background: #dcfce7; color: #166534; }
+  .sum-err { background: #fee2e2; color: #991b1b; }
+  .sum-neutral { background: #f3f4f6; color: #6b7280; }
+
+  .warning {
+    background: #fff7ed;
+    border-left: 4px solid #f97316;
+    color: #9a3412;
+    padding: 8px 14px;
+    border-radius: 0 7px 7px 0;
+    font-size: 0.87rem;
+    margin-bottom: 12px;
+  }
+
+  /* ── PDF table ── */
+  .pdf-tbl { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+  .pdf-tbl thead tr th {
+    background: #1e3a8a;
+    color: white;
+    padding: 10px 14px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+  .pdf-tbl thead tr th:first-child { border-radius: 7px 0 0 0; }
+  .pdf-tbl thead tr th:last-child  { border-radius: 0 7px 0 0; }
+  .pdf-tbl tbody td {
+    padding: 9px 14px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f5;
+    font-family: 'Courier New', monospace;
+  }
+  .pdf-tbl tbody tr:hover td { background: #f8faff; }
+  .pdf-tbl .total-row td {
+    font-weight: 700;
+    background: #f1f5f9;
+    border-top: 2px solid #cbd5e1;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #1e3a8a;
+  }
+
+  /* ── Math display ── */
+  .math-block {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95rem;
+    line-height: 1.9;
+    color: #1e1e2e;
+  }
+  .math-section-label {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .math-section-label:first-child { margin-top: 0; }
+  .math-line { margin: 1px 0; }
+  .math-answer {
+    margin-top: 10px;
+    padding: 10px 16px;
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    border-radius: 0 8px 8px 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e40af;
+  }
+  .math-answer.green {
+    background: #f0fdf4;
+    border-color: #16a34a;
+    color: #166534;
+    margin-top: 6px;
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<h1>Probability Distribution Function</h1>
+<p class="subtitle">Econ 378 — Define a discrete PDF, then compute expected value and variance.</p>
+
+<!-- ══ Step 1: Setup ══════════════════════════════════════════════════════════ -->
+<div class="panel">
+  <div class="panel-title">Step 1 — How many values can X take on?</div>
+  <div class="setup-row">
+    <label>Number of values:</label>
+    <input type="number" class="spinner" id="numValues" min="2" max="12" value="3">
+    <button class="btn btn-blue" onclick="buildInputTable()">Generate Table</button>
+  </div>
+</div>
+
+<!-- ══ Step 2: Enter x and P(X=x) ════════════════════════════════════════════ -->
+<div class="panel hidden" id="inputPanel">
+  <div class="panel-title">Step 2 — Enter each value of X and its probability</div>
+  <table class="input-tbl" id="inputTable">
+    <thead>
+      <tr>
+        <th>x</th>
+        <th>P(X = x)</th>
+      </tr>
+    </thead>
+    <tbody id="inputBody"></tbody>
+  </table>
+  <div class="sum-row">
+    <span>Sum of probabilities:</span>
+    <span class="sum-badge sum-neutral" id="sumBadge">—</span>
+    <span id="sumNote" style="color:#9ca3af;font-size:0.85rem;">(must equal 1)</span>
+  </div>
+  <div class="warning hidden" id="sumWarning">Probabilities must sum to exactly 1. Adjust your values before calculating.</div>
+  <button class="btn btn-green" id="calcBtn" onclick="calculate()" disabled>Calculate →</button>
+</div>
+
+<!-- ══ Step 3: PDF Table ══════════════════════════════════════════════════════ -->
+<div class="panel hidden" id="pdfPanel">
+  <div class="panel-title">PDF Table</div>
+  <div id="pdfTableContainer"></div>
+</div>
+
+<!-- ══ Step 4: Expected Value ════════════════════════════════════════════════ -->
+<div class="panel hidden" id="evPanel">
+  <div class="panel-title">Expected Value — E(X)</div>
+  <div class="math-block" id="evMath"></div>
+</div>
+
+<!-- ══ Step 5: Variance ══════════════════════════════════════════════════════ -->
+<div class="panel hidden" id="varPanel">
+  <div class="panel-title">Variance — Var(X)</div>
+  <div class="math-block" id="varMath"></div>
+</div>
+
+<script>
+let nRows = 3;
+
+// ── Build input table ──────────────────────────────────────────────────────────
+function buildInputTable() {
+  nRows = Math.min(12, Math.max(2, parseInt(document.getElementById('numValues').value) || 3));
+
+  const tbody = document.getElementById('inputBody');
+  tbody.innerHTML = '';
+
+  for (let i = 0; i < nRows; i++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" id="xVal${i}" placeholder="e.g. ${i}" oninput="checkReady()"></td>
+      <td><input type="text" id="pVal${i}" placeholder="e.g. 0.25"   oninput="checkReady()"></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById('inputPanel').classList.remove('hidden');
+  ['pdfPanel','evPanel','varPanel'].forEach(id =>
+    document.getElementById(id).classList.add('hidden')
+  );
+  document.getElementById('sumBadge').textContent = '—';
+  document.getElementById('sumBadge').className = 'sum-badge sum-neutral';
+  document.getElementById('sumWarning').classList.add('hidden');
+  document.getElementById('calcBtn').disabled = true;
+}
+
+// ── Validate inputs and update sum display ────────────────────────────────────
+function checkReady() {
+  let allXFilled = true, allPFilled = true, sumP = 0;
+
+  for (let i = 0; i < nRows; i++) {
+    const xRaw = document.getElementById(`xVal${i}`).value.trim();
+    const pRaw = document.getElementById(`pVal${i}`).value.trim();
+    const xEl  = document.getElementById(`xVal${i}`);
+    const pEl  = document.getElementById(`pVal${i}`);
+
+    if (xRaw === '' || isNaN(parseFloat(xRaw))) {
+      allXFilled = false;
+      xEl.classList.toggle('invalid', xRaw !== '');
+    } else {
+      xEl.classList.remove('invalid');
+    }
+
+    const p = parseFloat(pRaw);
+    if (pRaw === '' || isNaN(p)) {
+      allPFilled = false;
+      pEl.classList.toggle('invalid', pRaw !== '');
+    } else if (p < 0 || p > 1) {
+      allPFilled = false;
+      pEl.classList.add('invalid');
+    } else {
+      pEl.classList.remove('invalid');
+      sumP += p;
+    }
+  }
+
+  const badge = document.getElementById('sumBadge');
+  const warning = document.getElementById('sumWarning');
+
+  if (!allPFilled) {
+    badge.textContent = '—';
+    badge.className = 'sum-badge sum-neutral';
+    warning.classList.add('hidden');
+    document.getElementById('calcBtn').disabled = true;
+    return;
+  }
+
+  const sumRounded = Math.round(sumP * 10000) / 10000;
+  const ok = Math.abs(sumP - 1) < 0.0001;
+
+  badge.textContent = sumRounded.toFixed(4);
+  badge.className = 'sum-badge ' + (ok ? 'sum-ok' : 'sum-err');
+  warning.classList.toggle('hidden', ok);
+  document.getElementById('calcBtn').disabled = !(ok && allXFilled);
+}
+
+// ── Calculate ─────────────────────────────────────────────────────────────────
+function calculate() {
+  const xs = [], ps = [];
+  for (let i = 0; i < nRows; i++) {
+    xs.push(parseFloat(document.getElementById(`xVal${i}`).value));
+    ps.push(parseFloat(document.getElementById(`pVal${i}`).value));
+  }
+
+  const mu       = xs.reduce((acc, x, i) => acc + x * ps[i], 0);
+  const variance = xs.reduce((acc, x, i) => acc + Math.pow(x - mu, 2) * ps[i], 0);
+
+  renderPDFTable(xs, ps, mu);
+  renderEV(xs, ps, mu);
+  renderVariance(xs, ps, mu, variance);
+
+  ['pdfPanel','evPanel','varPanel'].forEach(id =>
+    document.getElementById(id).classList.remove('hidden')
+  );
+  document.getElementById('pdfPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── PDF Table ─────────────────────────────────────────────────────────────────
+function renderPDFTable(xs, ps, mu) {
+  const xTimesP  = xs.map((x, i) => x * ps[i]);
+  const devSq    = xs.map(x => Math.pow(x - mu, 2));
+  const devSqP   = xs.map((x, i) => Math.pow(x - mu, 2) * ps[i]);
+
+  let rows = xs.map((x, i) => `
+    <tr>
+      <td>${fmt(x)}</td>
+      <td>${fmt(ps[i])}</td>
+      <td>${fmt(xTimesP[i])}</td>
+      <td>${fmt(devSq[i])}</td>
+      <td>${fmt(devSqP[i])}</td>
+    </tr>
+  `).join('');
+
+  const totP    = ps.reduce((a,b) => a+b, 0);
+  const totXP   = xTimesP.reduce((a,b) => a+b, 0);
+  const totDSP  = devSqP.reduce((a,b) => a+b, 0);
+
+  document.getElementById('pdfTableContainer').innerHTML = `
+    <table class="pdf-tbl">
+      <thead>
+        <tr>
+          <th>x</th>
+          <th>P(X = x)</th>
+          <th>x · P(X = x)</th>
+          <th>(x − μ)²</th>
+          <th>(x − μ)² · P(X = x)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="total-row">
+          <td>Total</td>
+          <td>${fmt(totP)}</td>
+          <td>${fmt(totXP)}</td>
+          <td></td>
+          <td>${fmt(totDSP)}</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+}
+
+// ── Expected Value ────────────────────────────────────────────────────────────
+function renderEV(xs, ps, mu) {
+  // Line 1: generic formula
+  const generic = xs.map((_, i) => `x<sub>${i+1}</sub>&middot;P(X=x<sub>${i+1}</sub>)`).join(' + ');
+
+  // Line 2: substituted values
+  const subst = xs.map((x, i) => `(${fmt(x)})(${fmt(ps[i])})`).join(' + ');
+
+  // Line 3: individual products
+  const products = xs.map((x, i) => fmt(x * ps[i])).join(' + ');
+
+  document.getElementById('evMath').innerHTML = `
+    <div class="math-section-label">Formula</div>
+    <div class="math-line">E(X) = &Sigma; x &middot; P(X = x)</div>
+
+    <div class="math-section-label">Substitution</div>
+    <div class="math-line">E(X) = ${generic}</div>
+    <div class="math-line">E(X) = ${subst}</div>
+    <div class="math-line">E(X) = ${products}</div>
+
+    <div class="math-answer">E(X) = &mu; = ${fmt(mu)}</div>
+  `;
+}
+
+// ── Variance ──────────────────────────────────────────────────────────────────
+function renderVariance(xs, ps, mu, variance) {
+  // Line 1: generic formula
+  const generic = xs.map((_, i) =>
+    `(x<sub>${i+1}</sub>&minus;&mu;)&sup2;&middot;P(X=x<sub>${i+1}</sub>)`
+  ).join(' + ');
+
+  // Line 2: plug in x and mu
+  const sub1 = xs.map((x, i) =>
+    `(${fmt(x)}&minus;${fmt(mu)})&sup2;&middot;(${fmt(ps[i])})`
+  ).join(' + ');
+
+  // Line 3: compute (x - mu)
+  const sub2 = xs.map((x, i) =>
+    `(${fmt(x - mu)})&sup2;&middot;(${fmt(ps[i])})`
+  ).join(' + ');
+
+  // Line 4: compute (x - mu)^2
+  const sub3 = xs.map((x, i) =>
+    `(${fmt(Math.pow(x - mu, 2))})(${fmt(ps[i])})`
+  ).join(' + ');
+
+  // Line 5: individual products
+  const products = xs.map((x, i) =>
+    fmt(Math.pow(x - mu, 2) * ps[i])
+  ).join(' + ');
+
+  document.getElementById('varMath').innerHTML = `
+    <div class="math-section-label">Formula</div>
+    <div class="math-line">Var(X) = &Sigma; (x &minus; &mu;)&sup2; &middot; P(X = x)</div>
+
+    <div class="math-section-label">Substitution</div>
+    <div class="math-line">Var(X) = ${generic}</div>
+    <div class="math-line">Var(X) = ${sub1}</div>
+    <div class="math-line">Var(X) = ${sub2}</div>
+    <div class="math-line">Var(X) = ${sub3}</div>
+    <div class="math-line">Var(X) = ${products}</div>
+
+    <div class="math-answer">Var(X) = &sigma;&sup2; = ${fmt(variance)}</div>
+    <div class="math-answer green">SD(X) = &sigma; = ${fmt(Math.sqrt(variance))}</div>
+  `;
+}
+
+// ── Number formatting ─────────────────────────────────────────────────────────
+function fmt(v) {
+  const r = Math.round(v * 100000) / 100000;
+  if (Number.isInteger(r)) return r.toString();
+  // Up to 4 decimal places, strip trailing zeros
+  return parseFloat(r.toFixed(4)).toString();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildInputTable();
+</script>
+</body>
+</html>
